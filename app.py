@@ -3,7 +3,7 @@ from langchain import LlamaCpp
 import streamlit as st
 from langchain.vectorstores import Chroma
 from dotenv import load_dotenv
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings  
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
@@ -39,7 +39,7 @@ def get_conversation_chain(vectorstore):
     )
     return conversation_chain
 
-def load_model(model_id, model_basename=None):
+def load_model(model_id, model_basename):
         if ".ggml" in model_basename:
             #logging.info("Using Llamacpp for GGML quantized models")
             model_path = hf_hub_download(repo_id=model_id, filename=model_basename)
@@ -54,7 +54,6 @@ def load_model(model_id, model_basename=None):
             #logging.info("Using LlamaTokenizer")
             tokenizer = LlamaTokenizer.from_pretrained(model_id)
             model = LlamaForCausalLM.from_pretrained(model_id)
-    
 
 def handle_userinput(user_question):
     

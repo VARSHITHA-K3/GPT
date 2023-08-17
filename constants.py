@@ -16,6 +16,7 @@ CHROMA_SETTINGS = Settings(
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 MODEL_ID = "TheBloke/orca_mini_3B-GGML"
 MODEL_BASENAME = "orca-mini-3b.ggmlv3.q4_0.bin"
+#MODEL_PATH = "C:/Users/dell/.cache/huggingface/hub/models--TheBloke--orca_mini_3B-GGML/snapshots/423525dd58bf01fca2a7ef57b7f8f39d4a9366b8/orca-mini-3b.ggmlv3.q4_0.bin"
 
 # MODEL_TYPE="GPT4All"
 # MODEL_PATH="models/orca-mini-3b.ggmlv3.q4_0.bin"
