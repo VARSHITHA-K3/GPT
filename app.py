@@ -1,5 +1,5 @@
 import os
-from langchain import LlamaCpp
+from langchain.llms import LlamaCpp
 import streamlit as st
 from langchain.vectorstores import Chroma
 from dotenv import load_dotenv
@@ -10,14 +10,18 @@ from htmlTemplates import css, bot_template, user_template
 from huggingface_hub import hf_hub_download
 from langchain.llms import GPT4All
 from transformers import LlamaTokenizer, LlamaForCausalLM
-from constants import MODEL_ID,MODEL_BASENAME, EMBEDDING_MODEL_NAME, PERSIST_DIRECTORY
+from constants import MODEL_ID,MODEL_BASENAME, EMBEDDING_MODEL_NAME, PERSIST_DIRECTORY,MODEL_PATH,MODEL_TYPE,TARGET_SOURCE_CHUNKS,MODEL_N_CTX,MODEL_N_BATCH
 
 #load_dotenv()
 embeddings_model_name = EMBEDDING_MODEL_NAME
 persist_directory = PERSIST_DIRECTORY
 model_id = MODEL_ID
 model_basename = MODEL_BASENAME
-#target_source_chunks = int(os.environ.get('TARGET_SOURCE_CHUNKS',4))
+model_path = MODEL_PATH
+target_source_chunks = TARGET_SOURCE_CHUNKS
+model_n_ctx = MODEL_N_CTX
+model_n_batch = MODEL_N_BATCH
+
 
 
 def get_vectorstore():
@@ -39,21 +43,19 @@ def get_conversation_chain(vectorstore):
     )
     return conversation_chain
 
-def load_model(model_id, model_basename):
-        if ".ggml" in model_basename:
+def load_model(model_id, model_basename=None):
+        if MODEL_TYPE=="Llama":
             #logging.info("Using Llamacpp for GGML quantized models")
-            model_path = hf_hub_download(repo_id=model_id, filename=model_basename)
+            #model_path = hf_hub_download(repo_id=model_id, filename=model_basename)
             max_ctx_size = 2048
-            kwargs = {
-                "model_path": model_path,
-                "n_ctx": max_ctx_size,
-                "max_tokens": max_ctx_size,
-            }
-            return LlamaCpp(**kwargs)
+            return LlamaCpp(model_path=model_path,n_ctx = max_ctx_size,max_tokens = max_ctx_size)
+        elif MODEL_TYPE=="GPT":
+            return GPT4All(model=model_path, backend='gptj', n_batch=model_n_batch,verbose=None)
         else:
             #logging.info("Using LlamaTokenizer")
             tokenizer = LlamaTokenizer.from_pretrained(model_id)
             model = LlamaForCausalLM.from_pretrained(model_id)
+    
 
 def handle_userinput(user_question):
     
