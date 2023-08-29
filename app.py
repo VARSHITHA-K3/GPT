@@ -29,14 +29,14 @@ USERS = {
 
 def login_page():
     #st.title("Login")
-    auto_login_username = "user1"
-    auto_login_password = USERS.get(auto_login_username)
+    # auto_login_username = "user1"
+    # auto_login_password = USERS.get(auto_login_username)
     
-    if auto_login_password:
-        #st.success(f"Auto-logged in as {auto_login_username}!")
-        token = generate_token(auto_login_username)
-        st.experimental_set_query_params(token=token)
-        st.experimental_rerun()
+    # if auto_login_password:
+    #     #st.success(f"Auto-logged in as {auto_login_username}!")
+    #     token = generate_token(auto_login_username)
+    #     st.experimental_set_query_params(token=token)
+    #     st.experimental_rerun()
     
     st.warning("Please use the login form.")
     username = st.text_input("Username")
@@ -54,7 +54,7 @@ def login_page():
 def generate_token(username):
     payload = {
         "username": username,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=0,minutes=0,seconds=10)
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=0,minutes=30)
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     print (token)
@@ -62,7 +62,12 @@ def generate_token(username):
 
 def verify_token(token):
     payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    print(payload)
+    payload = verify_token(token)
+    if payload:
+        st.session_state.logged_in = True
+        st.success(f"Logged in as: {payload['username']}")
+    else:
+        st.error("Invalid or expired token")
     return payload
 
 
@@ -118,33 +123,37 @@ def main():
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
     st.write(css, unsafe_allow_html=True)
+
+    username = st.experimental_get_query_params().get("username", [None])[0]
+    password = st.experimental_get_query_params().get("password", [None])[0]
+
+    if username in USERS and USERS[username] == password:
+        st.session_state.logged_in = True
+        token = generate_token(username)
+        st.experimental_set_query_params(token=token)
     token = st.experimental_get_query_params().get("token", [None])[0]
-    
-    vectorstore = get_vectorstore()
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = get_conversation_chain(vectorstore)
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = None
-    user_question = st.text_input("Ask a question about your documents:")
     if token:
-        
+        vectorstore = get_vectorstore()
+        if "conversation" not in st.session_state:
+            st.session_state.conversation = get_conversation_chain(vectorstore)
+        if "chat_history" not in st.session_state:
+            st.session_state.chat_history = None
+        user_question = st.text_input("Ask a question about your documents:")
+    
         if user_question:
             handle_userinput(user_question)
             response = st.session_state.conversation({'question': user_question})
             st.session_state.chat_history = response['chat_history']
             for i, message in enumerate(st.session_state.chat_history):
-                    if i % 2 == 0:
-                        st.write(user_template.replace(
-                            "{{MSG}}", message.content), unsafe_allow_html=True)
-                    else:
-                        st.write(bot_template.replace(
-                            "{{MSG}}", message.content), unsafe_allow_html=True)
+                if i % 2 == 0:
+                    st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
+                else:
+                    st.write(bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
             with st.expander("Show Source Documents"):
                 search = st.session_state.db.similarity_search_with_score(user_question)
-                for i, doc in enumerate(search): 
-                    # print(doc)
+                for i, doc in enumerate(search):
                     st.write(f"Source Document # {i+1} : {doc[0].metadata['source'].split('/')[-1]}")
-                    st.write(doc[0].page_content) 
+                    st.write(doc[0].page_content)
                     st.write("--------------------------------")
     else:
         login_page()
