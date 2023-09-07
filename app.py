@@ -1,5 +1,3 @@
-import logging
-import os
 from fastapi import HTTPException
 from langchain.llms import LlamaCpp
 import streamlit as st
@@ -9,6 +7,7 @@ from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings  
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+from sql import check_user_credentials
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import GPT4All
 from constants import (MODEL_ID,MODEL_BASENAME, EMBEDDING_MODEL_NAME, PERSIST_DIRECTORY,MODEL_PATH,MODEL_TYPE,
@@ -25,12 +24,6 @@ model_n_ctx = MODEL_N_CTX
 model_n_batch = MODEL_N_BATCH
 
 SECRET_KEY = "SECRET"
-
-USERS = {
-    "user1": "password1",
-    "user2": "password2",
-}
-
 
 def generate_token(username):
     payload = {
@@ -54,8 +47,8 @@ def verify_token(token):
 
 
 def LoggedIn_Clicked(username, password):
-    if username in USERS and USERS[username] == password:
-        #st.success("Logged in successfully!")
+    user = check_user_credentials(username,password)
+    if user and user[1] == password:
         token = generate_token(username)
         print(token)
         st.session_state['token'] = token
@@ -66,49 +59,36 @@ def LoggedIn_Clicked(username, password):
         st.session_state['username'] = None
         st.error("Invalid user name or password.")
 
-# def LoggedIn_url(username, password):
-#     if st.experimental_get_query_params()['username'][0] in USERS and password == 'pass1':
-#         print("a")
-#         token = generate_token(username)
-#         st.session_state['token'] = token
-#         st.session_state['username'] = username
-#         print(st.session_state,token,username)
-#         return token
-#     else:
-#         st.session_state['token'] = False
-#         st.session_state['username'] = None
-#         st.error("Invalid user name or password..")
-        
 def login():
     st.title("Login")
-    
     if st.session_state['token'] == False:
         print("A1")
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         print("A2")
-        st.button ("Login", on_click=LoggedIn_Clicked, args= (username, password))
-        print("A3")
-    else:
-        return ("Invalid")
+        if st.button("Login"):
+            if username and password:
+                LoggedIn_Clicked(username, password)
+                print("A3")
+                st.experimental_rerun()
+            else:
+                st.error("Please enter username and password")
+        
     query_params = st.experimental_get_query_params()
-    if 'username' in query_params and query_params['username'][0] in USERS:
+    if 'username' in query_params:
         print("A4")
-        username = st.experimental_get_query_params()['username']
-        password = USERS['user1']
-        if st.experimental_get_query_params()['username'][0] in USERS and USERS['user1'] == password:
-            print("A5")
+        username = query_params['username'][0]
+        password = "pass1"
+        user = check_user_credentials(username,password)
+        if user and user[1] == password:
             token = generate_token(username)
             st.session_state['token'] = True
             st.session_state['username'] = True
-            print(st.session_state,token,username)
-            print("A6")
+            st.experimental_rerun()
         else:
             st.session_state['token'] = False
             st.session_state['username'] = False
             st.error("Invalid user name or password..")
-    else:
-        return ("invalid")
 
 def get_vectorstore():
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
@@ -193,3 +173,7 @@ def headerSection():
             main()
         else:
             login()
+
+
+if __name__ == "__main__":
+    headerSection()
